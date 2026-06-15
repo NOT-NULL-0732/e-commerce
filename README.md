@@ -16,10 +16,13 @@
 │   ├── model/             # GORM 数据库模型
 │   ├── auth/              # 认证模块 (JWT + Redis Session)
 │   ├── user/              # 用户注册
-│   ├── product/           # 商品 CRUD
-│   ├── order/             # 订单 (事务内锁库存 + MQ 延迟超时)
-│   ├── wallet/            # 钱包 (幂等充值)
-│   └── config/            # 应用配置
+│   ├── product/           # 商品 CRUD (乐观锁库存)
+│   ├── order/             # 订单 (事务内锁库存 + 优惠券核销 + MQ 延迟超时退券)
+│   ├── coupon/            # 优惠券 (乐观锁发券 + 版本号核销 + 超时退券)
+│   ├── wallet/            # 钱包 (DB 唯一键幂等)
+│   ├── middleware/        # 中间件 (JWT 认证、令牌桶限流)
+│   ├── app/               # 应用启动 (优雅关闭、健康检查、OTel)
+│   └── config/            # 应用配置 (多环境校验)
 ├── pkg/                   # 公共组件
 ├── tests/                 # 集成测试 (Ginkgo)
 └── .gitea/workflows/      # CI 配置
@@ -76,8 +79,12 @@ chore: 添加 IMAGE_REPOSITORY 环境变量支持 registry 切换
 
 ## 功能
 
-- 用户注册、JWT 登录、Refresh Token
-- 商品创建/列表/更新/删除
-- 订单创建（事务：行锁扣库存 + 快照 + MQ 延迟超时）
+- 用户注册、JWT 双 Token 登录、Redis Session 管理
+- 商品 CRUD（乐观锁库存扣减、库存变动日志）
+- 订单创建（事务：FOR UPDATE 锁库存 + 优惠券核销 + MQ 延迟超时自动取消退券）
+- 优惠券（固定金额/折扣率，乐观锁发券，版本号核销，超时退券）
 - 钱包充值（DB 唯一键幂等）
+- 令牌桶限流（IP 级别，登录接口 5 req/s）
+- 健康检查 / 就绪探测（liveness/readiness）
+- 优雅关闭（SIGINT/SIGTERM 信号处理）
 - 全链路追踪 + 结构化日志 + 业务指标
